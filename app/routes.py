@@ -3,6 +3,7 @@ from quart import Blueprint, jsonify, request, websocket, current_app
 from datetime import datetime, timedelta
 from threading import Timer, Lock
 from .handlers.receive import _receive as ReceiveWebSocket
+from .handlers.send import _send as SendWebSocket
 
 
 
@@ -37,13 +38,22 @@ async def ws_run(token) -> None:
   current_app.token_manager.remove_expired_token(token)
 
   print(f"WebSocket request for token: {token}")
-  try:
-    task = asyncio.ensure_future(ReceiveWebSocket(token))
-    async for message in current_app.broker.subscribe():
-      await websocket.send(message)
-  finally:
-    task.cancel()
-    print("WS Closed")
-    await task
+  # try:
+  #   task = asyncio.ensure_future(ReceiveWebSocket(token))
+  #   async for message in current_app.broker.subscribe():
+  #     await websocket.send(message)
+  # finally:
+  #   task.cancel()
+  #   print("WS Closed")
+  #   await task
 
-      
+  try:      
+    # Use asyncio.gather to manage concurrent tasks
+    await asyncio.gather(
+      ReceiveWebSocket(token),
+      SendWebSocket(token)
+    )
+  except asyncio.CancelledError:
+    print(f"WebSocket connection for token {token} cancelled.")
+  finally:
+    print(f"WebSocket connection for token {token} closed.")
