@@ -1,0 +1,6 @@
+
+# Ignore virtualenv
+venv
+
+# Ignore .env
+.env
